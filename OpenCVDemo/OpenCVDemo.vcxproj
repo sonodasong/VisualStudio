@@ -101,14 +101,14 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>D:\OpenCV\Build\install\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%OPENCV_DIR%\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\OpenCV\Build\install\x64\vc15\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_calib3d330.lib;opencv_core330.lib;opencv_dnn330.lib;opencv_features2d330.lib;opencv_flann330.lib;opencv_highgui330.lib;opencv_imgcodecs330.lib;opencv_imgproc330.lib;opencv_ml330.lib;opencv_objdetect330.lib;opencv_photo330.lib;opencv_shape330.lib;opencv_stitching330.lib;opencv_superres330.lib;opencv_video330.lib;opencv_videoio330.lib;opencv_videostab330.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%OPENCV_DIR%\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_calib3d320d.lib;opencv_core320d.lib;opencv_features2d320d.lib;opencv_flann320d.lib;opencv_highgui320d.lib;opencv_imgcodecs320d.lib;opencv_imgproc320d.lib;opencv_ml320d.lib;opencv_objdetect320d.lib;opencv_photo320d.lib;opencv_shape320d.lib;opencv_stitching320d.lib;opencv_superres320d.lib;opencv_video320d.lib;opencv_videoio320d.lib;opencv_videostab320d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -136,7 +136,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%OPENCV_DIR%\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
