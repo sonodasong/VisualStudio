@@ -24,6 +24,15 @@
     <ClInclude Include="BarcodeWidth.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Macros.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Width1D.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Performance.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -33,6 +42,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="BarcodeWidth.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Width1D.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Performance.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

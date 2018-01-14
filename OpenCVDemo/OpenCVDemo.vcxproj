@@ -150,11 +150,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="BarcodeWidth.h" />
+    <ClInclude Include="Macros.h" />
+    <ClInclude Include="Performance.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="Width1D.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BarcodeWidth.cpp" />
+    <ClCompile Include="Performance.cpp" />
+    <ClCompile Include="Width1D.cpp" />
     <ClCompile Include="OpenCVDemo.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

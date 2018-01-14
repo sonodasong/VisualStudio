@@ -75,8 +75,6 @@ static vector<int> getLineSegment(vector<bool> lineProfile)
 	return lineSegment;
 }
 
-#define THRESHOLD_COEFFICIENT		2.1
-
 static bool testThreshold(vector<int> consecutive, int max, bool debug) {
 	float mean = 0;
 	int size = consecutive.size();
