@@ -6,25 +6,25 @@ static int lineSegment[WIDTH];
 static int lineSegmentSize = 0;
 
 static void getLineSegment(Mat &input, int y);
-static pair<int, int> getWitdh1DLine(void);
+static pair<int, int> getWitdh1DLine(int coefficient);
 static void lineSegmentHist(String window);
 static void printArray(String tag, int *array, int size);
 static pair<int, int> compareWidth(pair<int, int> x, pair<int, int> y);
 
-int getWidth1DLineHist(Mat &input, int y, String window)
+int getWidth1DLineHist(Mat &input, int y, int coefficient, String window)
 {
 	getLineSegment(input, y);
 	//printArray("lineSegment", lineSegment, lineSegmentSize); //
 	lineSegmentHist(window);
-	return getWitdh1DLine().second;
+	return getWitdh1DLine(coefficient).second;
 }
 
-int getWidth1D(Mat &input, int step)
+int getWidth1D(Mat &input, int step, int coefficient)
 {
 	pair<int, int> width = pair<int, int>(0, 0);
 	for (int i = step / 2; i < HEIGHT; i += step) {
 		getLineSegment(input, i);
-		width = compareWidth(width, getWitdh1DLine());
+		width = compareWidth(width, getWitdh1DLine(coefficient));
 	}
 	return width.second;
 }
@@ -51,7 +51,7 @@ static void getLineSegment(Mat &input, int y)
 	}
 }
 
-static bool testThreshold(int *consecutive, int consecutiveSize, int max, bool debug) {
+static bool testThreshold(int *consecutive, int consecutiveSize, int max, int coefficient, bool debug) {
 	float mean = 0;
 	for (int i = 0; i < consecutiveSize; i++) {
 		mean += consecutive[i];
@@ -61,10 +61,10 @@ static bool testThreshold(int *consecutive, int consecutiveSize, int max, bool d
 		printArray("consecutive", consecutive, consecutiveSize);
 		cout << "mean, max: " << mean << " " << max << endl;
 	}
-	return (max < mean * THRESHOLD_COEFFICIENT) ? true : false;
+	return (max < mean * coefficient / 10) ? true : false;
 }
 
-static pair<int, int> getWitdh1DLineThreshold(int threshold)
+static pair<int, int> getWitdh1DLineThreshold(int coefficient, int threshold)
 {
 	int a[WIDTH], b[WIDTH];
 	int *swap;
@@ -82,7 +82,7 @@ static pair<int, int> getWitdh1DLineThreshold(int threshold)
 		if (lock) {
 			if (segment > threshold) {
 				lock = false;
-				if ((tempConsecutiveSize > consecutiveSize) && testThreshold(tempConsecutive, tempConsecutiveSize, tempMax, false)) {
+				if ((tempConsecutiveSize > consecutiveSize) && testThreshold(tempConsecutive, tempConsecutiveSize, tempMax, coefficient, false)) {
 					swap = consecutive;
 					consecutive = tempConsecutive;
 					tempConsecutive = swap;
@@ -102,15 +102,15 @@ static pair<int, int> getWitdh1DLineThreshold(int threshold)
 		}
 	}
 	//cout << "threshold: " << threshold << endl; //
-	//testThreshold(consecutive, consecutiveSize, max, true); //
+	//testThreshold(consecutive, consecutiveSize, max, coefficient, true); //
 	return pair<int, int>(consecutiveSize, max);
 }
 
-static pair<int, int> getWitdh1DLine(void)
+static pair<int, int> getWitdh1DLine(int coefficient)
 {
 	pair<int, int> width1DLine = pair<int, int>(0, 0);
 	for (int threshold = MIN_BAR_WDITH; threshold <= MAX_BAR_WIDTH; threshold++) {
-		width1DLine = compareWidth(width1DLine, getWitdh1DLineThreshold(threshold));
+		width1DLine = compareWidth(width1DLine, getWitdh1DLineThreshold(coefficient, threshold));
 	}
 	return width1DLine;
 }
