@@ -8,3 +8,4 @@ using namespace std;
 using namespace cv;
 
 int getWidth1DLineHist(Mat &input, int y, String window);
+int getWidth1D(Mat &input, int step);

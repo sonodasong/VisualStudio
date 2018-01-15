@@ -5,9 +5,29 @@
 static int lineSegment[WIDTH];
 static int lineSegmentSize = 0;
 
-static pair<int, int> getWitdh1DLineThreshold(int threshold);
+static void getLineSegment(Mat &input, int y);
+static pair<int, int> getWitdh1DLine(void);
 static void lineSegmentHist(String window);
 static void printArray(String tag, int *array, int size);
+static pair<int, int> compareWidth(pair<int, int> x, pair<int, int> y);
+
+int getWidth1DLineHist(Mat &input, int y, String window)
+{
+	getLineSegment(input, y);
+	//printArray("lineSegment", lineSegment, lineSegmentSize); //
+	lineSegmentHist(window);
+	return getWitdh1DLine().second;
+}
+
+int getWidth1D(Mat &input, int step)
+{
+	pair<int, int> width = pair<int, int>(0, 0);
+	for (int i = step / 2; i < HEIGHT; i += step) {
+		getLineSegment(input, i);
+		width = compareWidth(width, getWitdh1DLine());
+	}
+	return width.second;
+}
 
 static void getLineSegment(Mat &input, int y)
 {
@@ -29,15 +49,6 @@ static void getLineSegment(Mat &input, int y)
 			count = 1;
 		}
 	}
-}
-
-int getWidth1DLineHist(Mat &input, int y, String window)
-{
-	getLineSegment(input, y);
-	//printArray("lineSegment", lineSegment, lineSegmentSize);
-	lineSegmentHist(window);
-	getWitdh1DLineThreshold(6);
-	return 0;
 }
 
 static bool testThreshold(int *consecutive, int consecutiveSize, int max, bool debug) {
@@ -95,6 +106,15 @@ static pair<int, int> getWitdh1DLineThreshold(int threshold)
 	return pair<int, int>(consecutiveSize, max);
 }
 
+static pair<int, int> getWitdh1DLine(void)
+{
+	pair<int, int> width1DLine = pair<int, int>(0, 0);
+	for (int threshold = MIN_BAR_WDITH; threshold <= MAX_BAR_WIDTH; threshold++) {
+		width1DLine = compareWidth(width1DLine, getWitdh1DLineThreshold(threshold));
+	}
+	return width1DLine;
+}
+
 static void lineSegmentHist(String window)
 {
 	Mat hist = Mat::zeros(Size(100, 200), CV_8U);
@@ -111,4 +131,9 @@ static void printArray(String tag, int *array, int size)
 		cout << array[i] << " ";
 	}
 	cout << endl;
+}
+
+static pair<int, int> compareWidth(pair<int, int> x, pair<int, int> y)
+{
+	return x.first > y.first ? x : y;
 }
