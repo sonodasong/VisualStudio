@@ -135,5 +135,9 @@ static void printArray(String tag, int *array, int size)
 
 static pair<int, int> compareWidth(pair<int, int> x, pair<int, int> y)
 {
-	return x.first > y.first ? x : y;
+	if (y.first == x.first) {
+		return y.second > x.second ? y : x;
+	} else {
+		return y.first > x.first ? y : x;
+	}
 }
