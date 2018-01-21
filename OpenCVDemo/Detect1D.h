@@ -8,3 +8,4 @@ using namespace std;
 using namespace cv;
 
 void detect1D(Mat &input, Mat &draw, Mat &output);
+void detect1DRect(Mat &input, Mat &draw, Mat &output);

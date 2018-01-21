@@ -8,3 +8,6 @@ using namespace cv;
 
 void performanceStart(void);
 void performanceStop(String tag);
+void getOctagonKernel(Mat &kernel, int size);
+void sharpen1(Mat &input, Mat &output);
+void sharpen2(Mat &input, Mat &output);

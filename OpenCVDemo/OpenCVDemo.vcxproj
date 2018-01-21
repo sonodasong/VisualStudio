@@ -151,14 +151,14 @@
   <ItemGroup>
     <ClInclude Include="Detect1D.h" />
     <ClInclude Include="Macros.h" />
-    <ClInclude Include="Performance.h" />
+    <ClInclude Include="Util.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Width1D.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Detect1D.cpp" />
-    <ClCompile Include="Performance.cpp" />
+    <ClCompile Include="Util.cpp" />
     <ClCompile Include="Width1D.cpp" />
     <ClCompile Include="OpenCVDemo.cpp" />
     <ClCompile Include="stdafx.cpp">

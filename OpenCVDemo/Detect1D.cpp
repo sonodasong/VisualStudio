@@ -9,14 +9,14 @@ Point2f minRectMid[4];
 vector<int> originHull;
 vector<int> reduceHull;
 Point2f minQuadrilateral[4];
-int minQuadrilateralStart;
+int quadrilateralStart;
 
 static void findMaxContour(void);
 static void getMinRectMid(void);
 static void reduceConvexHull(void);
 static bool getMinQuadrilateral(void);
-static void getMinQuadrilateralStart(void);
-static void getBarcode1D(Mat &input, Mat &output);
+static void getQuadrilateralStart(Point2f *quadrilateral);
+static void getBarcode1D(Mat &input, Mat &output, Point2f *quadrilateral);
 static void drawMinRect(Mat &output);
 static void drawMinRectMid(Mat &output);
 static void drawOriginHull(Mat &output);
@@ -35,14 +35,28 @@ void detect1D(Mat &input, Mat &draw, Mat &output)
 	convexHull(Mat(contours[maxContourIndex]), originHull, false); // false is clockwise, why?
 	reduceConvexHull();
 	if (!getMinQuadrilateral()) return;
-	getMinQuadrilateralStart();
-	getBarcode1D(draw, output);
+	getQuadrilateralStart(minQuadrilateral);
+	getBarcode1D(draw, output, minQuadrilateral);
 
 	//drawMinRect(draw);
 	//drawMinRectMid(draw);
 	//drawOriginHull(draw);
 	//drawReduceHull(draw);
 	drawMinQuadrilateral(draw);
+}
+
+void detect1DRect(Mat &input, Mat &draw, Mat &output)
+{
+	vector<Vec4i> hierarchy;
+	findContours(input, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+	findMaxContour();
+	if (maxContourIndex == -1) return;
+	//drawContours(draw, contours, maxContourIndex, Scalar(0, 0, 255), 1, 8, hierarchy, 0);
+	minAreaRect(Mat(contours[maxContourIndex])).points(minRect);
+	getQuadrilateralStart(minRect);
+	getBarcode1D(draw, output, minRect);
+
+	drawMinRect(draw);
 }
 
 static void findMaxContour(void)
@@ -152,12 +166,12 @@ static bool getMinQuadrilateral(void)
 	return true;
 }
 
-static void getMinQuadrilateralStart(void)
+static void getQuadrilateralStart(Point2f *quadrilateral)
 {
 	float leftMost[2] = {WIDTH, WIDTH};
 	int index[2];
 	for (int i = 0; i < 4; i++) {
-		float x = minQuadrilateral[i].x;
+		float x = quadrilateral[i].x;
 		if (x < leftMost[0]) {
 			leftMost[1] = leftMost[0];
 			index[1] = index[0];
@@ -168,10 +182,10 @@ static void getMinQuadrilateralStart(void)
 			index[1] = i;
 		}
 	}
-	minQuadrilateralStart = minQuadrilateral[index[0]].y < minQuadrilateral[index[1]].y ? index[0] : index[1];
+	quadrilateralStart = quadrilateral[index[0]].y < quadrilateral[index[1]].y ? index[0] : index[1];
 }
 
-static void getBarcode1D(Mat &input, Mat &output)
+static void getBarcode1D(Mat &input, Mat &output, Point2f *quadrilateral)
 {
 	vector<Point2f> object(4);
 	vector<Point2f> scene(4);
@@ -179,10 +193,10 @@ static void getBarcode1D(Mat &input, Mat &output)
 	scene[1] = Point2f(BAR_1D_WIDTH, 0);
 	scene[2] = Point2f(BAR_1D_WIDTH, BAR_1D_HEIGHT);
 	scene[3] = Point2f(0, BAR_1D_HEIGHT);
-	object[0] = minQuadrilateral[minQuadrilateralStart];
-	object[1] = minQuadrilateral[(minQuadrilateralStart + 1) % 4];
-	object[2] = minQuadrilateral[(minQuadrilateralStart + 2) % 4];
-	object[3] = minQuadrilateral[(minQuadrilateralStart + 3) % 4];
+	object[0] = quadrilateral[quadrilateralStart] * RATIO;
+	object[1] = quadrilateral[(quadrilateralStart + 1) % 4] * RATIO;
+	object[2] = quadrilateral[(quadrilateralStart + 2) % 4] * RATIO;
+	object[3] = quadrilateral[(quadrilateralStart + 3) % 4] * RATIO;
 	Mat tran = getPerspectiveTransform(object, scene);
 	warpPerspective(input, output, tran, Size(BAR_1D_WIDTH, BAR_1D_HEIGHT));
 }
@@ -190,7 +204,7 @@ static void getBarcode1D(Mat &input, Mat &output)
 static void drawMinRect(Mat &draw)
 {
 	for (int i = 0; i < 4; i++) {
-		line(draw, minRect[i], minRect[(i + 1) % 4], Scalar(0, 0, 255), 1, LINE_AA);
+		line(draw, minRect[i] * RATIO, minRect[(i + 1) % 4] * RATIO, Scalar(0, 0, 255), 1, LINE_AA);
 	}
 }
 
@@ -229,6 +243,6 @@ static void drawReduceHull(Mat &draw)
 static void drawMinQuadrilateral(Mat &draw)
 {
 	for (int i = 0; i < 4; i++) {
-		line(draw, minQuadrilateral[i], minQuadrilateral[(i + 1) % 4], Scalar(0, 255, 0), 1, LINE_AA);
+		line(draw, minQuadrilateral[i] * RATIO, minQuadrilateral[(i + 1) % 4] * RATIO, Scalar(0, 255, 0), 1, LINE_AA);
 	}
 }

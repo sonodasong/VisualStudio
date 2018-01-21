@@ -7,5 +7,5 @@
 using namespace std;
 using namespace cv;
 
-int getWidth1DLineHist(Mat &input, int y, int coefficient, String window);
+int getWidth1DLineHist(Mat &input, Mat &hist, int y, int coefficient);
 int getWidth1D(Mat &input, int step, int coefficient);

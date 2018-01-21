@@ -7,15 +7,15 @@ static int lineSegmentSize = 0;
 
 static void getLineSegment(Mat &input, int y);
 static pair<int, int> getWitdh1DLine(int coefficient);
-static void lineSegmentHist(String window);
+static void lineSegmentHist(Mat &hist);
 static void printArray(String tag, int *array, int size);
 static pair<int, int> compareWidth(pair<int, int> x, pair<int, int> y);
 
-int getWidth1DLineHist(Mat &input, int y, int coefficient, String window)
+int getWidth1DLineHist(Mat &input, Mat &hist, int y, int coefficient)
 {
 	getLineSegment(input, y);
 	//printArray("lineSegment", lineSegment, lineSegmentSize); //
-	lineSegmentHist(window);
+	lineSegmentHist(hist);
 	return getWitdh1DLine(coefficient).second;
 }
 
@@ -115,13 +115,11 @@ static pair<int, int> getWitdh1DLine(int coefficient)
 	return width1DLine;
 }
 
-static void lineSegmentHist(String window)
+static void lineSegmentHist(Mat &hist)
 {
-	Mat hist = Mat::zeros(Size(100, 200), CV_8U);
 	for (int i = 0; i < lineSegmentSize; i++) {
 		line(hist, Point(i, 0), Point(i, lineSegment[i]), 255);
 	}
-	imshow(window, hist);
 }
 
 static void printArray(String tag, int *array, int size)

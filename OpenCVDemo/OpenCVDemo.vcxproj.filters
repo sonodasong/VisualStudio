@@ -27,10 +27,10 @@
     <ClInclude Include="Width1D.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Performance.h">
+    <ClInclude Include="Detect1D.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="Detect1D.h">
+    <ClInclude Include="Util.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -44,10 +44,10 @@
     <ClCompile Include="Width1D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Performance.cpp">
+    <ClCompile Include="Detect1D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Detect1D.cpp">
+    <ClCompile Include="Util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
