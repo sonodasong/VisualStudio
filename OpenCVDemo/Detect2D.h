@@ -7,5 +7,4 @@
 using namespace std;
 using namespace cv;
 
-int getWidth1DLineHist(Mat &input, Mat &hist, int y, int coefficient);
-int getWidth1D(Mat &input, int step, int coefficient);
+void detect2D(Mat &input, Mat &output, Mat &draw, int ratio);

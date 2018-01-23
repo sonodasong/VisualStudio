@@ -2,14 +2,14 @@
 
 #include "Detect1D.h"
 
-vector<vector<Point>> contours;
-int maxContourIndex;
-Point2f minRect[4];
-Point2f minRectMid[4];
-vector<int> originHull;
-vector<int> reduceHull;
-Point2f minQuadrilateral[4];
-int quadrilateralStart;
+static vector<vector<Point>> contours;
+static int maxContourIndex;
+static Point2f minRect[4];
+static Point2f minRectMid[4];
+static vector<int> originHull;
+static vector<int> reduceHull;
+static Point2f minQuadrilateral[4];
+static int quadrilateralStart;
 
 static double findMaxContour(void);
 static void getMinRectMid(void);
@@ -20,7 +20,7 @@ static double getQuadrilateralArea(Point2f *quadrilateral);
 static void getBarcode1D(Mat &input, Mat &output, Point2f *quadrilateral, int ratio);
 static void drawMinRect(Mat &draw, int ratio);
 static void drawMinRectMid(Mat &output);
-static void drawOriginHull(Mat &output);
+static void drawOriginHull(Mat &draw, int ratio);
 static void drawReduceHull(Mat &output);
 static void drawMinQuadrilateral(Mat &draw, int ratio);
 
@@ -38,15 +38,15 @@ double detect1D(Mat &input, Mat &draw, Mat &output, int ratio)
 	reduceConvexHull();
 	if (!getMinQuadrilateral()) return -1;
 	area2 = getQuadrilateralArea(minQuadrilateral);
-	if (area1 / area2 < AREA_FACTOR) return -1;
+	//if (area1 / area2 < AREA_FACTOR) return -1;
 	area1 *= ratio * ratio;
-	if (area1 < MIN_AREA) return -1;
+	//if (area1 < MIN_AREA) return -1;
 	getQuadrilateralStart(minQuadrilateral);
 	getBarcode1D(draw, output, minQuadrilateral, ratio);
 
 	//drawMinRect(draw);
 	//drawMinRectMid(draw);
-	//drawOriginHull(draw);
+	drawOriginHull(draw, ratio);
 	//drawReduceHull(draw);
 	drawMinQuadrilateral(draw, ratio);
 	cout << area1<< endl;
@@ -232,13 +232,13 @@ static void drawMinRectMid(Mat &draw)
 	line(draw, minRectMid[1], minRectMid[3], Scalar(0, 0, 255), 1, LINE_AA);
 }
 
-static void drawOriginHull(Mat &draw)
+static void drawOriginHull(Mat &draw, int ratio)
 {
 	Point prev, cur;
 	int size = originHull.size();
-	prev = contours[maxContourIndex][originHull[size - 1]];
+	prev = contours[maxContourIndex][originHull[size - 1]] * ratio;
 	for (int i = 0; i < size; i++) {
-		cur = contours[maxContourIndex][originHull[i]];
+		cur = contours[maxContourIndex][originHull[i]] * ratio;
 		line(draw, prev, cur, Scalar(255, 0, 0), 1, LINE_AA);
 		rectangle(draw, Point(cur.x - 1, cur.y -1), Point(cur.x + 2, cur.y + 2), Scalar(255, 0, 0), FILLED, LINE_AA);
 		prev = cur;
