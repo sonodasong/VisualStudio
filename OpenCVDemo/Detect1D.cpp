@@ -11,41 +11,49 @@ vector<int> reduceHull;
 Point2f minQuadrilateral[4];
 int quadrilateralStart;
 
-static void findMaxContour(void);
+static double findMaxContour(void);
 static void getMinRectMid(void);
 static void reduceConvexHull(void);
 static bool getMinQuadrilateral(void);
 static void getQuadrilateralStart(Point2f *quadrilateral);
-static void getBarcode1D(Mat &input, Mat &output, Point2f *quadrilateral);
-static void drawMinRect(Mat &output);
+static double getQuadrilateralArea(Point2f *quadrilateral);
+static void getBarcode1D(Mat &input, Mat &output, Point2f *quadrilateral, int ratio);
+static void drawMinRect(Mat &draw, int ratio);
 static void drawMinRectMid(Mat &output);
 static void drawOriginHull(Mat &output);
 static void drawReduceHull(Mat &output);
-static void drawMinQuadrilateral(Mat &output);
+static void drawMinQuadrilateral(Mat &draw, int ratio);
 
-void detect1D(Mat &input, Mat &draw, Mat &output)
+double detect1D(Mat &input, Mat &draw, Mat &output, int ratio)
 {
 	vector<Vec4i> hierarchy;
+	double area1, area2;
 	findContours(input, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-	findMaxContour();
-	if (maxContourIndex == -1) return;
+	area1 = findMaxContour();
+	if (maxContourIndex == -1) return -1;
 	//drawContours(draw, contours, maxContourIndex, Scalar(0, 0, 255), 1, 8, hierarchy, 0);
 	minAreaRect(Mat(contours[maxContourIndex])).points(minRect);
 	getMinRectMid();
 	convexHull(Mat(contours[maxContourIndex]), originHull, false); // false is clockwise, why?
 	reduceConvexHull();
-	if (!getMinQuadrilateral()) return;
+	if (!getMinQuadrilateral()) return -1;
+	area2 = getQuadrilateralArea(minQuadrilateral);
+	if (area1 / area2 < AREA_FACTOR) return -1;
+	area1 *= ratio * ratio;
+	if (area1 < MIN_AREA) return -1;
 	getQuadrilateralStart(minQuadrilateral);
-	getBarcode1D(draw, output, minQuadrilateral);
+	getBarcode1D(draw, output, minQuadrilateral, ratio);
 
 	//drawMinRect(draw);
 	//drawMinRectMid(draw);
 	//drawOriginHull(draw);
 	//drawReduceHull(draw);
-	drawMinQuadrilateral(draw);
+	drawMinQuadrilateral(draw, ratio);
+	cout << area1<< endl;
+	return area1;
 }
 
-void detect1DRect(Mat &input, Mat &draw, Mat &output)
+void detect1DRect(Mat &input, Mat &draw, Mat &output, int ratio)
 {
 	vector<Vec4i> hierarchy;
 	findContours(input, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
@@ -54,12 +62,12 @@ void detect1DRect(Mat &input, Mat &draw, Mat &output)
 	//drawContours(draw, contours, maxContourIndex, Scalar(0, 0, 255), 1, 8, hierarchy, 0);
 	minAreaRect(Mat(contours[maxContourIndex])).points(minRect);
 	getQuadrilateralStart(minRect);
-	getBarcode1D(draw, output, minRect);
+	getBarcode1D(draw, output, minRect, ratio);
 
-	drawMinRect(draw);
+	drawMinRect(draw, ratio);
 }
 
-static void findMaxContour(void)
+static double findMaxContour(void)
 {
 	double area = 0;
 	double temp = 0;
@@ -71,6 +79,7 @@ static void findMaxContour(void)
 			maxContourIndex = i;
 		}
 	}
+	return area;
 }
 
 static void getMinRectMid(void)
@@ -185,7 +194,16 @@ static void getQuadrilateralStart(Point2f *quadrilateral)
 	quadrilateralStart = quadrilateral[index[0]].y < quadrilateral[index[1]].y ? index[0] : index[1];
 }
 
-static void getBarcode1D(Mat &input, Mat &output, Point2f *quadrilateral)
+static double getQuadrilateralArea(Point2f *quadrilateral)
+{
+	vector<Point> contour;
+	for (int i = 0; i < 4; i++) {
+		contour.push_back(Point(quadrilateral[i].x, quadrilateral[i].y));
+	}
+	return contourArea(contour);
+}
+
+static void getBarcode1D(Mat &input, Mat &output, Point2f *quadrilateral, int ratio)
 {
 	vector<Point2f> object(4);
 	vector<Point2f> scene(4);
@@ -193,18 +211,18 @@ static void getBarcode1D(Mat &input, Mat &output, Point2f *quadrilateral)
 	scene[1] = Point2f(BAR_1D_WIDTH, 0);
 	scene[2] = Point2f(BAR_1D_WIDTH, BAR_1D_HEIGHT);
 	scene[3] = Point2f(0, BAR_1D_HEIGHT);
-	object[0] = quadrilateral[quadrilateralStart] * RATIO;
-	object[1] = quadrilateral[(quadrilateralStart + 1) % 4] * RATIO;
-	object[2] = quadrilateral[(quadrilateralStart + 2) % 4] * RATIO;
-	object[3] = quadrilateral[(quadrilateralStart + 3) % 4] * RATIO;
+	object[0] = quadrilateral[quadrilateralStart] * ratio;
+	object[1] = quadrilateral[(quadrilateralStart + 1) % 4] * ratio;
+	object[2] = quadrilateral[(quadrilateralStart + 2) % 4] * ratio;
+	object[3] = quadrilateral[(quadrilateralStart + 3) % 4] * ratio;
 	Mat tran = getPerspectiveTransform(object, scene);
 	warpPerspective(input, output, tran, Size(BAR_1D_WIDTH, BAR_1D_HEIGHT));
 }
 
-static void drawMinRect(Mat &draw)
+static void drawMinRect(Mat &draw, int ratio)
 {
 	for (int i = 0; i < 4; i++) {
-		line(draw, minRect[i] * RATIO, minRect[(i + 1) % 4] * RATIO, Scalar(0, 0, 255), 1, LINE_AA);
+		line(draw, minRect[i] * ratio, minRect[(i + 1) % 4] * ratio, Scalar(0, 0, 255), 1, LINE_AA);
 	}
 }
 
@@ -240,9 +258,9 @@ static void drawReduceHull(Mat &draw)
 	}
 }
 
-static void drawMinQuadrilateral(Mat &draw)
+static void drawMinQuadrilateral(Mat &draw, int ratio)
 {
 	for (int i = 0; i < 4; i++) {
-		line(draw, minQuadrilateral[i] * RATIO, minQuadrilateral[(i + 1) % 4] * RATIO, Scalar(0, 255, 0), 1, LINE_AA);
+		line(draw, minQuadrilateral[i] * ratio, minQuadrilateral[(i + 1) % 4] * ratio, Scalar(0, 255, 0), 1, LINE_AA);
 	}
 }
