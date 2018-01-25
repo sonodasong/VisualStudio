@@ -1,6 +1,6 @@
 #pragma once
 
-//#define ANALOG_CAMERA
+#define ANALOG_CAMERA
 #ifdef ANALOG_CAMERA
 #define WIDTH						600
 #define HEIGHT						480
@@ -13,6 +13,8 @@
 #define AREA_FACTOR					0.8
 #define MIN_AREA					5000
 
+#define COS_150						(-0.866)
+#define COS_160						(-0.93969)
 #define COS_170						(-0.9848)
 #define AREA_RATIO					0.8
 

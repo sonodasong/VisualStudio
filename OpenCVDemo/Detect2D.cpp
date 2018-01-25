@@ -25,7 +25,7 @@ void detect2D(Mat &input, Mat &output, Mat &draw, int scale)
 	_draw = draw;
 	_scale = scale;
 	findContours(input, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-	//cout << contours.size() << endl; //
+	cout << contours.size() << endl; //
 	detectMarker();
 	getBarcode2D(draw, output);
 }
@@ -85,7 +85,7 @@ static vector<int> reduceConvexHull(int index, vector<int> &originHull)
 		next = contours[index][originHull[(i + 1) % size]];
 		lenCur = len2(cur, next);
 		_dot = dot(cur, prev, cur, next);
-		if (_dot * _dot < lenPrev * lenCur * COS_170 * COS_170) {
+		if (_dot * _dot < lenPrev * lenCur * COS_160 * COS_160) {
 			reduceHull.push_back(originHull[i]);
 		}
 		prev = cur;
@@ -146,33 +146,35 @@ static vector<Point> getMinQuadrilateral(int index)
 	}
 	convexHull(Mat(contours[index]), originHull, false); // false is clockwise, why?
 	//vector<int> &reduceHull = reduceConvexHull(index, originHull);
-	//if (reduceHull.size() < 4) return minQuadrilateral;
-	size = originHull.size();
+	vector<int> &reduceHull = originHull;
+	if (reduceHull.size() < 4) return minQuadrilateral;
+	//drawConvexHull(index, reduceHull);
+	size = reduceHull.size();
 	det[0] = minRectMid[0].x * minRectMid[2].y - minRectMid[2].x * minRectMid[0].y;
 	det[1] = minRectMid[1].x * minRectMid[3].y - minRectMid[3].x * minRectMid[1].y;
 	for (i = 0; i < size; i++) {
-		if (validateEdge(index, originHull, i, minRectMid, 0, det[0])) {
+		if (validateEdge(index, reduceHull, i, minRectMid, 0, det[0])) {
 			validEdge.push_back(i);
 			activeMid = 1;
 			break;
-		} else if (validateEdge(index, originHull, i, minRectMid, 1, det[1])) {
+		} else if (validateEdge(index, reduceHull, i, minRectMid, 1, det[1])) {
 			validEdge.push_back(i);
 			activeMid = 0;
 			break;
 		}
 	}
 	for (i++; i < size; i++) {
-		if (validateEdge(index, originHull, i, minRectMid, activeMid, det[activeMid])) {
+		if (validateEdge(index, reduceHull, i, minRectMid, activeMid, det[activeMid])) {
 			validEdge.push_back(i);
 			activeMid = 1 - activeMid;
 		}
 	}
 	if (validEdge.size() != 4) return minQuadrilateral;
 	for (int i = 0; i < 4; i++) {
-		Point p1 = contours[index][originHull[validEdge[i]]];
-		Point p2 = contours[index][originHull[(validEdge[i] + 1) % size]];
-		Point q1 = contours[index][originHull[validEdge[(i + 1) % 4]]];
-		Point q2 = contours[index][originHull[(validEdge[(i + 1) % 4] + 1) % size]];
+		Point p1 = contours[index][reduceHull[validEdge[i]]];
+		Point p2 = contours[index][reduceHull[(validEdge[i] + 1) % size]];
+		Point q1 = contours[index][reduceHull[validEdge[(i + 1) % 4]]];
+		Point q2 = contours[index][reduceHull[(validEdge[(i + 1) % 4] + 1) % size]];
 		Point temp = getIntersection(p1, p2, q1, q2);
 		if (temp.x < 0) return minQuadrilateral;
 		minQuadrilateral.push_back(temp);
@@ -276,15 +278,15 @@ static void detectMarker(void)
 	getSequence();
 	getHighLeft();
 	getLowRight(getLowLeft(), getHighRight());
-	/*
-	drawQuadrilateral(marker[sequence[0]], Scalar(255, 0, 255));
+	
+	drawQuadrilateral(marker[sequence[0]], Scalar(0, 0, 255));
 	drawQuadrilateral(marker[sequence[1]], Scalar(0, 255, 0));
-	drawQuadrilateral(marker[sequence[2]], Scalar(0, 0, 255));
-	circle(_draw, lowLeft * _scale, 2, Scalar(0, 0, 255), FILLED, LINE_AA);
-	circle(_draw, highLeft * _scale, 2, Scalar(0, 255, 0), FILLED, LINE_AA);
-	circle(_draw, highRight * _scale, 2, Scalar(255, 0, 0), FILLED, LINE_AA);
-	circle(_draw, lowRight * _scale, 2, Scalar(255, 0, 255), FILLED, LINE_AA);
-	*/
+	drawQuadrilateral(marker[sequence[2]], Scalar(255, 0, 0));
+	//circle(_draw, lowLeft * _scale, 2, Scalar(0, 0, 255), FILLED, LINE_AA);
+	//circle(_draw, highLeft * _scale, 2, Scalar(0, 255, 0), FILLED, LINE_AA);
+	//circle(_draw, highRight * _scale, 2, Scalar(255, 0, 0), FILLED, LINE_AA);
+	//circle(_draw, lowRight * _scale, 2, Scalar(255, 0, 255), FILLED, LINE_AA);
+	
 }
 
 static void getBarcode2D(Mat &input, Mat &output)
