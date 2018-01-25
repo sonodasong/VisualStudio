@@ -1,7 +1,13 @@
 #pragma once
 
+//#define ANALOG_CAMERA
+#ifdef ANALOG_CAMERA
 #define WIDTH						600
 #define HEIGHT						480
+#else
+#define WIDTH						640
+#define HEIGHT						480
+#endif
 
 #define HULL_REDUCE_ANGLE			170
 #define AREA_FACTOR					0.8
@@ -22,7 +28,7 @@
 #define BAR_2D_WIDTH				320
 #define BAR_2D_HEIGHT				320
 
-#undef PERFORMANCE
+//#define PERFORMANCE
 #ifdef PERFORMANCE
 #define PERFORMANCE_START()			performanceStart()
 #define PERFORMANCE_STOP(tag)		performanceStop(tag)
