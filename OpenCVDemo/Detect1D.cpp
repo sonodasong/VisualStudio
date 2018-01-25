@@ -2,180 +2,226 @@
 
 #include "Detect1D.h"
 
-vector<vector<Point>> contours;
-int maxContourIndex;
-Point2f minRect[4];
-Point2f minRectMid[4];
-vector<int> originHull;
-vector<int> reduceHull;
-Point2f minQuadrilateral[4];
-int quadrilateralStart;
+static Mat _draw;
+static int _scale;
+static vector<vector<Point>> contours;
 
-static double findMaxContour(void);
-static void getMinRectMid(void);
-static void reduceConvexHull(void);
-static bool getMinQuadrilateral(void);
-static void getQuadrilateralStart(Point2f *quadrilateral);
-static double getQuadrilateralArea(Point2f *quadrilateral);
-static void getBarcode1D(Mat &input, Mat &output, Point2f *quadrilateral, int ratio);
-static void drawMinRect(Mat &draw, int ratio);
-static void drawMinRectMid(Mat &output);
-static void drawOriginHull(Mat &output);
-static void drawReduceHull(Mat &output);
-static void drawMinQuadrilateral(Mat &draw, int ratio);
+static int findMaxContour(double &area);
+static vector<Point> getMinQuadrilateral(int index);
+static int getQuadrilateralStart(vector<Point> &quadrilateral);
+static vector<Point> getMinTrapezoid(vector<Point> &minQuadrilateral, int start, int type);
+static void getBarcode1D(Mat &input, Mat &output, vector<Point> &quadrilateral, int quadrilateralStart);
+static void drawQuadrilateral(vector<Point> &quadrilateral, Scalar color);
+static void drawMinRectMid(vector<Point> &minRectMid);
+static void drawConvexHull(int index, vector<int> &hull, Scalar color);
 
-double detect1D(Mat &input, Mat &draw, Mat &output, int ratio)
+double detect1D(Mat &input, Mat &output, Mat &draw, int scale)
 {
 	vector<Vec4i> hierarchy;
-	double area1, area2;
+	double barcodeArea;
+	_draw = draw;
+	_scale = scale;
 	findContours(input, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-	area1 = findMaxContour();
-	if (maxContourIndex == -1) return -1;
-	//drawContours(draw, contours, maxContourIndex, Scalar(0, 0, 255), 1, 8, hierarchy, 0);
-	minAreaRect(Mat(contours[maxContourIndex])).points(minRect);
-	getMinRectMid();
-	convexHull(Mat(contours[maxContourIndex]), originHull, false); // false is clockwise, why?
-	reduceConvexHull();
-	if (!getMinQuadrilateral()) return -1;
-	area2 = getQuadrilateralArea(minQuadrilateral);
-	if (area1 / area2 < AREA_FACTOR) return -1;
-	area1 *= ratio * ratio;
-	if (area1 < MIN_AREA) return -1;
-	getQuadrilateralStart(minQuadrilateral);
-	getBarcode1D(draw, output, minQuadrilateral, ratio);
-
-	//drawMinRect(draw);
-	//drawMinRectMid(draw);
-	//drawOriginHull(draw);
-	//drawReduceHull(draw);
-	drawMinQuadrilateral(draw, ratio);
-	cout << area1<< endl;
-	return area1;
+	int maxContour = findMaxContour(barcodeArea);
+	if (maxContour == -1) return -1;
+	//drawContours(draw, contours, maxContour, RED, 1, 8, hierarchy, 0); //
+	vector<Point> &minQuadrilateral = getMinQuadrilateral(maxContour);
+	if (minQuadrilateral.size() != 4) return -1;
+	if (barcodeArea / contourArea(minQuadrilateral) < AREA_RATIO_THRESHOLD) return -1;
+	barcodeArea *= scale * scale;
+	if (barcodeArea < MIN_AREA) return -1;
+	getBarcode1D(draw, output, minQuadrilateral, getQuadrilateralStart(minQuadrilateral));
+	drawQuadrilateral(minQuadrilateral, GREEN);
+	cout << barcodeArea << endl; //
+	return barcodeArea;
 }
 
-void detect1DRect(Mat &input, Mat &draw, Mat &output, int ratio)
+double detect1DTrapezoid(Mat &input, Mat &output, Mat &draw, int scale)
 {
 	vector<Vec4i> hierarchy;
+	double barcodeArea;
+	_draw = draw;
+	_scale = scale;
 	findContours(input, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-	findMaxContour();
-	if (maxContourIndex == -1) return;
-	//drawContours(draw, contours, maxContourIndex, Scalar(0, 0, 255), 1, 8, hierarchy, 0);
-	minAreaRect(Mat(contours[maxContourIndex])).points(minRect);
-	getQuadrilateralStart(minRect);
-	getBarcode1D(draw, output, minRect, ratio);
-
-	drawMinRect(draw, ratio);
+	int maxContour = findMaxContour(barcodeArea);
+	if (maxContour == -1) return -1;
+	//drawContours(draw, contours, maxContour, RED, 1, 8, hierarchy, 0); //
+	vector<Point> &minQuadrilateral = getMinQuadrilateral(maxContour);
+	if (minQuadrilateral.size() != 4) return -1;
+	if (barcodeArea / contourArea(minQuadrilateral) < AREA_RATIO_THRESHOLD) return -1;
+	barcodeArea *= scale * scale;
+	if (barcodeArea < MIN_AREA) return -1;
+	vector<Point> &minTrapezoid = getMinTrapezoid(minQuadrilateral, getQuadrilateralStart(minQuadrilateral), 0);
+	getBarcode1D(draw, output, minTrapezoid, 0);
+	drawQuadrilateral(minTrapezoid, BLUE);
+	cout << barcodeArea << endl; //
+	return barcodeArea;
 }
 
-static double findMaxContour(void)
+static int findMaxContour(double &area)
 {
-	double area = 0;
-	double temp = 0;
-	maxContourIndex = -1;
+	int maxContour = -1;
+	area = 0;
 	for (int i = 0; i < contours.size(); i++) {
-		temp = contourArea(contours[i]);
+		double temp = contourArea(contours[i]);
 		if (temp > area) {
 			area = temp;
-			maxContourIndex = i;
+			maxContour = i;
 		}
 	}
-	return area;
+	return maxContour;
 }
 
-static void getMinRectMid(void)
+static vector<Point> getMinRect(int index)
 {
+	vector<Point> minRect;
+	Point2f temp[4];
+	minAreaRect(Mat(contours[index])).points(temp);
 	for (int i = 0; i < 4; i++) {
-		minRectMid[i].x = (minRect[i].x + minRect[(i + 1) % 4].x) / 2;
-		minRectMid[i].y = (minRect[i].y + minRect[(i + 1) % 4].y) / 2;
+		minRect.push_back(Point(temp[i].x, temp[i].y));
 	}
+	return minRect;
 }
 
-static float length(Point p1, Point p2)
+static vector<Point> getMinRectMid(vector<Point> &minRect)
 {
-	float x = p1.x - p2.x;
-	float y = p1.y - p2.y;
-	return sqrtf(x * x + y * y);
+	vector<Point> minRectMid;
+	for (int i = 0; i < 4; i++) {
+		int next = (i + 1) % 4;
+		minRectMid.push_back(Point((minRect[i].x + minRect[next].x) / 2, (minRect[i].y + minRect[next].y) / 2));
+	}
+	return minRectMid;
 }
 
-static float dot(Point p1, Point p2, Point p3, float len1, float len2)
+static int len2(Point p1, Point p2)
 {
-	float result = (p1.x - p2.x) * (p3.x - p2.x) + (p1.y - p2.y) * (p3.y - p2.y);
-	return result / len1 / len2;
+	int x = p1.x - p2.x;
+	int y = p1.y - p2.y;
+	return x * x + y * y;
 }
 
-static void reduceConvexHull(void)
+static int dot(Point p1, Point p2, Point p3, Point p4)
 {
-	Point prev, cur, next;
-	float lenPrev, lenCur;
+	return (p2.x - p1.x) * (p4.x - p3.x) + (p2.y - p1.y) * (p4.y - p3.y);
+}
+
+static vector<int> reduceConvexHull(int index, vector<int> &originHull)
+{
+	vector<int> reduceHull;
 	int size = originHull.size();
-	prev = contours[maxContourIndex][originHull[size - 1]];
-	cur = contours[maxContourIndex][originHull[0]];
-	lenPrev = length(prev, cur);
-	reduceHull.clear();
+	Point prev = contours[index][originHull[size - 1]];
+	Point cur = contours[index][originHull[0]];
+	Point next;
+	int lenPrev = len2(prev, cur);
+	int lenCur;
 	for (int i = 0; i < originHull.size(); i++) {
-		next = contours[maxContourIndex][originHull[(i + 1) % size]];
-		lenCur = length(cur, next);
-		if (dot(prev, cur, next, lenPrev, lenCur) > cosf(HULL_REDUCE_ANGLE * CV_PI / 180)) {
+		next = contours[index][originHull[(i + 1) % size]];
+		lenCur = len2(cur, next);
+		int _dot = dot(cur, prev, cur, next);
+		if (_dot * _dot < lenPrev * lenCur * COS_170 * COS_170) {
 			reduceHull.push_back(originHull[i]);
 		}
 		prev = cur;
 		cur = next;
 		lenPrev = lenCur;
 	}
+	return reduceHull;
 }
 
-static bool validateEdge(int reduceHullIndex, int midIndex)
+static bool validateEdge(int index, vector<int> &hull, int hullIndex, vector<Point> &mid, int midIndex, int det)
 {
-	Point2f p1 = contours[maxContourIndex][reduceHull[reduceHullIndex]];
-	Point2f p2 = contours[maxContourIndex][reduceHull[(reduceHullIndex + 1) % reduceHull.size()]];
-	Point2f m1 = minRectMid[midIndex];
-	Point2f m2 = minRectMid[(midIndex + 2) % 4];
-	float det = (m1.x * m2.y) - (m1.y * m2.x);
-	if (fabsf(det) < FLT_EPSILON) {
-		float k = m1.y / m1.x;
-		return (p1.y - p1.x * k) * (p2.y - p2.x * k) < 0 ? true : false;
-	} else {
-		float a = ((m2.y - m1.y) * p1.x - (m2.x - m1.x) * p1.y) - det;
-		float b = ((m2.y - m1.y) * p2.x - (m2.x - m1.x) * p2.y) - det;
-		return a * b < 0 ? true : false;
+	Point p1 = contours[index][hull[hullIndex]];
+	Point p2 = contours[index][hull[(hullIndex + 1) % hull.size()]];
+	Point m1 = mid[midIndex];
+	Point m2 = mid[midIndex + 2];
+	int sign1, sign2;
+	if (det == 0) {
+		sign1 = p1.y * m1.x - p1.x * m1.y;
+		sign2 = p2.y * m1.x - p2.x * m1.y;
 	}
+	else {
+		sign1 = ((m2.y - m1.y) * p1.x - (m2.x - m1.x) * p1.y) - det;
+		sign2 = ((m2.y - m1.y) * p2.x - (m2.x - m1.x) * p2.y) - det;
+	}
+	return (sign1 < 0 && sign2 >= 0) || (sign2 < 0 && sign1 >= 0) ? true : false;
 }
 
-static Point2f getIntersection(int p, int q)
+// e[0] * x + e[1] * y + e[2] = 0;
+static vector<int> getLineEquation(Point p1, Point p2)
 {
-	Point2f p1 = contours[maxContourIndex][reduceHull[p]];
-	Point2f p2 = contours[maxContourIndex][reduceHull[(p + 1) % reduceHull.size()]];
-	Point2f q1 = contours[maxContourIndex][reduceHull[q]];
-	Point2f q2 = contours[maxContourIndex][reduceHull[(q + 1) % reduceHull.size()]];
-	float mat[2][2];
-	mat[0][0] = p1.y - p2.y;
-	mat[0][1] = p2.x - p1.x;
-	mat[1][0] = q1.y - q2.y;
-	mat[1][1] = q2.x - q1.x;
-	float a = p2.x * p1.y - p1.x * p2.y;
-	float b = q2.x * q1.y - q1.x * q2.y;
-	float det = mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
-	float x0 = (mat[1][1] * a - mat[0][1] * b) / det;
-	float y0 = (mat[0][0] * b - mat[1][0] * a) / det;
-	return Point2f(x0, y0);
+	vector<int> e;
+	e.push_back(p1.y - p2.y);
+	e.push_back(p2.x - p1.x);
+	e.push_back(p1.x * p2.y - p2.x * p1.y);
+	return e;
 }
 
-static bool getMinQuadrilateral(void)
+static vector<int> getParallelLineEquation(vector<int> &line, Point p)
 {
+	vector<int> e;
+	e.push_back(line[0]);
+	e.push_back(line[1]);
+	e.push_back(-line[0] * p.x - line[1] * p.y);
+	return e;
+}
+
+static Point getIntersection(vector<int> &e1, vector<int> &e2)
+{
+	int det = e1[0] * e2[1] - e1[1] * e2[0];
+	if (det == 0) return Point(-1, -1);
+	int x = (e1[1] * e2[2] - e2[1] * e1[2]) / det;
+	int y = (e2[0] * e1[2] - e1[0] * e2[2]) / det;
+	return Point(x, y);
+}
+
+static vector<Point> getMinQuadrilateral(int index)
+{
+	vector<Point> minQuadrilateral;
+	vector<int> originHull;
 	vector<int> validEdge;
-	for (int i = 0; i < reduceHull.size(); i++) {
-		if (validateEdge(i, 0) || validateEdge(i, 1)) {
+	int i;
+	int activeMid;
+	vector<Point> minRectMid = getMinRectMid(getMinRect(index));
+	convexHull(Mat(contours[index]), originHull, false); // false is clockwise, why?
+	vector<int> &reduceHull = reduceConvexHull(index, originHull);
+	//vector<int> &reduceHull = originHull;
+	if (reduceHull.size() < 4) return minQuadrilateral;
+	//drawConvexHull(index, reduceHull, BLUE); //
+	int size = reduceHull.size();
+	int det[2] = {
+		minRectMid[0].x * minRectMid[2].y - minRectMid[2].x * minRectMid[0].y,
+		minRectMid[1].x * minRectMid[3].y - minRectMid[3].x * minRectMid[1].y
+	};
+	for (i = 0; i < size; i++) {
+		if (validateEdge(index, reduceHull, i, minRectMid, 0, det[0])) {
 			validEdge.push_back(i);
+			activeMid = 1;
+			break;
+		}
+		else if (validateEdge(index, reduceHull, i, minRectMid, 1, det[1])) {
+			validEdge.push_back(i);
+			activeMid = 0;
+			break;
 		}
 	}
-	if (validEdge.size() != 4) return false;
-	for (int i = 0; i < 4; i++) {
-		minQuadrilateral[i] = getIntersection(validEdge[i], validEdge[(i + 1) % 4]);
+	for (i++; i < size; i++) {
+		if (validateEdge(index, reduceHull, i, minRectMid, activeMid, det[activeMid])) {
+			validEdge.push_back(i);
+			activeMid = 1 - activeMid;
+		}
 	}
-	return true;
+	if (validEdge.size() != 4) return minQuadrilateral;
+	for (i = 0; i < 4; i++) {
+		vector<int> &e1 = getLineEquation(contours[index][reduceHull[validEdge[i]]], contours[index][reduceHull[(validEdge[i] + 1) % size]]);
+		vector<int> &e2 = getLineEquation(contours[index][reduceHull[validEdge[(i + 1) % 4]]], contours[index][reduceHull[(validEdge[(i + 1) % 4] + 1) % size]]);
+		Point temp = getIntersection(e1, e2);
+		if (temp.x < 0) return minQuadrilateral;
+		minQuadrilateral.push_back(temp);
+	}
+	return minQuadrilateral;
 }
 
-static void getQuadrilateralStart(Point2f *quadrilateral)
+static int getQuadrilateralStart(vector<Point> &quadrilateral)
 {
 	float leftMost[2] = {WIDTH, WIDTH};
 	int index[2];
@@ -191,19 +237,33 @@ static void getQuadrilateralStart(Point2f *quadrilateral)
 			index[1] = i;
 		}
 	}
-	quadrilateralStart = quadrilateral[index[0]].y < quadrilateral[index[1]].y ? index[0] : index[1];
+	return quadrilateral[index[0]].y < quadrilateral[index[1]].y ? index[0] : index[1];
 }
 
-static double getQuadrilateralArea(Point2f *quadrilateral)
+// 0: min; 1: mid; 2: max
+static vector<Point> getMinTrapezoid(vector<Point> &minQuadrilateral, int start, int type)
 {
-	vector<Point> contour;
-	for (int i = 0; i < 4; i++) {
-		contour.push_back(Point(quadrilateral[i].x, quadrilateral[i].y));
+	vector<Point> minTrapezoid;
+	vector<vector<int>> e;
+	vector<int> &base = getLineEquation(minQuadrilateral[start], minQuadrilateral[(start + 1) % 4]);
+	e.push_back(getParallelLineEquation(base, minQuadrilateral[(start + 2) % 4]));
+	e.push_back(getParallelLineEquation(base, (minQuadrilateral[(start + 2) % 4] + minQuadrilateral[(start + 3) % 4]) / 2));
+	e.push_back(getParallelLineEquation(base, minQuadrilateral[(start + 3) % 4]));
+	if (abs(e[0][2] - base[2]) > abs(e[2][2] - base[2])) {
+		type = 2 - type;
 	}
-	return contourArea(contour);
+	minTrapezoid.push_back(minQuadrilateral[start]);
+	minTrapezoid.push_back(minQuadrilateral[(start + 1) % 4]);
+	minTrapezoid.push_back(getIntersection(getLineEquation(minQuadrilateral[(start + 1) % 4], minQuadrilateral[(start + 2) % 4]), e[type]));
+	minTrapezoid.push_back(getIntersection(getLineEquation(minQuadrilateral[start], minQuadrilateral[(start + 3) % 4]), e[type]));
+	
+	circle(_draw, minTrapezoid[2] * _scale, 2, RED, FILLED, LINE_AA);
+	circle(_draw, minTrapezoid[3] * _scale, 2, RED, FILLED, LINE_AA);
+
+	return minTrapezoid;
 }
 
-static void getBarcode1D(Mat &input, Mat &output, Point2f *quadrilateral, int ratio)
+static void getBarcode1D(Mat &input, Mat &output, vector<Point> &quadrilateral, int quadrilateralStart)
 {
 	vector<Point2f> object(4);
 	vector<Point2f> scene(4);
@@ -211,56 +271,36 @@ static void getBarcode1D(Mat &input, Mat &output, Point2f *quadrilateral, int ra
 	scene[1] = Point2f(BAR_1D_WIDTH, 0);
 	scene[2] = Point2f(BAR_1D_WIDTH, BAR_1D_HEIGHT);
 	scene[3] = Point2f(0, BAR_1D_HEIGHT);
-	object[0] = quadrilateral[quadrilateralStart] * ratio;
-	object[1] = quadrilateral[(quadrilateralStart + 1) % 4] * ratio;
-	object[2] = quadrilateral[(quadrilateralStart + 2) % 4] * ratio;
-	object[3] = quadrilateral[(quadrilateralStart + 3) % 4] * ratio;
+	object[0] = quadrilateral[quadrilateralStart] * _scale;
+	object[1] = quadrilateral[(quadrilateralStart + 1) % 4] * _scale;
+	object[2] = quadrilateral[(quadrilateralStart + 2) % 4] * _scale;
+	object[3] = quadrilateral[(quadrilateralStart + 3) % 4] * _scale;
 	Mat tran = getPerspectiveTransform(object, scene);
 	warpPerspective(input, output, tran, Size(BAR_1D_WIDTH, BAR_1D_HEIGHT));
 }
 
-static void drawMinRect(Mat &draw, int ratio)
+static void drawQuadrilateral(vector<Point> &quadrilateral, Scalar color)
 {
 	for (int i = 0; i < 4; i++) {
-		line(draw, minRect[i] * ratio, minRect[(i + 1) % 4] * ratio, Scalar(0, 0, 255), 1, LINE_AA);
+		line(_draw, quadrilateral[i] * _scale, quadrilateral[(i + 1) % 4] * _scale, color, 1, LINE_AA);
 	}
 }
 
-static void drawMinRectMid(Mat &draw)
+static void drawMinRectMid(vector<Point> &minRectMid)
 {
-	line(draw, minRectMid[0], minRectMid[2], Scalar(0, 0, 255), 1, LINE_AA);
-	line(draw, minRectMid[1], minRectMid[3], Scalar(0, 0, 255), 1, LINE_AA);
+	line(_draw, minRectMid[0], minRectMid[2], Scalar(0, 0, 255), 1, LINE_AA);
+	line(_draw, minRectMid[1], minRectMid[3], Scalar(0, 0, 255), 1, LINE_AA);
 }
 
-static void drawOriginHull(Mat &draw)
+static void drawConvexHull(int index, vector<int> &hull, Scalar color)
 {
-	Point prev, cur;
-	int size = originHull.size();
-	prev = contours[maxContourIndex][originHull[size - 1]];
+	int size = hull.size();
+	Point prev = contours[index][hull[size - 1]] * _scale;
+	Point cur;
 	for (int i = 0; i < size; i++) {
-		cur = contours[maxContourIndex][originHull[i]];
-		line(draw, prev, cur, Scalar(255, 0, 0), 1, LINE_AA);
-		rectangle(draw, Point(cur.x - 1, cur.y -1), Point(cur.x + 2, cur.y + 2), Scalar(255, 0, 0), FILLED, LINE_AA);
+		cur = contours[index][hull[i]] * _scale;
+		line(_draw, prev, cur, color, 1, LINE_AA);
+		circle(_draw, cur, 2, color, FILLED, LINE_AA);
 		prev = cur;
-	}
-}
-
-static void drawReduceHull(Mat &draw)
-{
-	Point prev, cur;
-	int size = reduceHull.size();
-	prev = contours[maxContourIndex][reduceHull[size - 1]];
-	for (int i = 0; i < size; i++) {
-		cur = contours[maxContourIndex][reduceHull[i]];
-		line(draw, prev, cur, Scalar(255, 0, 255), 1, LINE_AA);
-		circle(draw, cur, 2, Scalar(255, 0, 255), FILLED, LINE_AA);
-		prev = cur;
-	}
-}
-
-static void drawMinQuadrilateral(Mat &draw, int ratio)
-{
-	for (int i = 0; i < 4; i++) {
-		line(draw, minQuadrilateral[i] * ratio, minQuadrilateral[(i + 1) % 4] * ratio, Scalar(0, 255, 0), 1, LINE_AA);
 	}
 }

@@ -154,12 +154,10 @@
     <ClInclude Include="Util.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="Width1D.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Detect1D.cpp" />
     <ClCompile Include="Util.cpp" />
-    <ClCompile Include="Width1D.cpp" />
     <ClCompile Include="OpenCVDemo.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
