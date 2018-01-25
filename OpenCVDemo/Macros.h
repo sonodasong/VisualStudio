@@ -1,7 +1,13 @@
 #pragma once
 
+//#define ANALOG_CAMERA
+#ifdef ANALOG_CAMERA
 #define WIDTH						600
 #define HEIGHT						480
+#else
+#define WIDTH						640
+#define HEIGHT						480
+#endif
 
 #define MIN_BAR_WDITH				4
 #define MAX_BAR_WIDTH				10
