@@ -30,7 +30,12 @@
 #define BAR_2D_WIDTH				320
 #define BAR_2D_HEIGHT				320
 
-//#define PERFORMANCE
+#define RED							Scalar(0, 0, 255)
+#define GREEN						Scalar(0, 255, 0)
+#define BLUE						Scalar(255, 0, 0)
+#define PURPLE						Scalar(255, 0, 255)
+
+#define PERFORMANCE
 #ifdef PERFORMANCE
 #define PERFORMANCE_START()			performanceStart()
 #define PERFORMANCE_STOP(tag)		performanceStop(tag)

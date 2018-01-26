@@ -149,7 +149,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Detect1D.h" />
     <ClInclude Include="Detect2D.h" />
     <ClInclude Include="Macros.h" />
     <ClInclude Include="Util.h" />
@@ -157,7 +156,6 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Detect1D.cpp" />
     <ClCompile Include="Detect2D.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="OpenCVDemo.cpp" />
