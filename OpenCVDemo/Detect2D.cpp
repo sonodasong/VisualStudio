@@ -363,7 +363,7 @@ static void getBarcode2DCenter(Mat &input, Mat &output)
 static void drawQuadrilateral(vector<Point> quadrilateral, Scalar color)
 {
 	for (int i = 0; i < 4; i++) {
-		line(_draw, quadrilateral[i] * _scale, quadrilateral[(i + 1) % 4] * _scale, color, 2, LINE_AA);
+		line(_draw, quadrilateral[i] * _scale, quadrilateral[(i + 1) % 4] * _scale, color, 1, LINE_AA);
 	}
 }
 
@@ -374,8 +374,8 @@ static void drawConvexHull(int index, vector<int> hull, Scalar color)
 	prev = contours[index][hull[size - 1]] * _scale;
 	for (int i = 0; i < size; i++) {
 		cur = contours[index][hull[i]] * _scale;
-		line(_draw, prev, cur, Scalar(255, 0, 255), 1, LINE_AA);
-		circle(_draw, cur, 2, Scalar(255, 0, 255), FILLED, LINE_AA);
+		line(_draw, prev, cur, color, 1, LINE_AA);
+		circle(_draw, cur, 2, color, FILLED, LINE_AA);
 		prev = cur;
 	}
 }
