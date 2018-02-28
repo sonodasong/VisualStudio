@@ -8,28 +8,24 @@ using namespace std;
 using namespace cv;
 
 static int _scale;
-static vector< vector<Point> > contours;
-static vector<double> sortedArea;
-static vector<int> sortedIndex;
-static vector< vector<Point> > marker;
 static Point markerCenter[3];
 static int sequence[3];
 static Point lowLeft, highLeft, highRight, lowRight;
 
-static void detectMarker(void);
-static void getBarcode2D(Mat &input, Mat &output);
-static void printArea(void);
+static void detectMarker(const vector< vector<Point> > &contours);
+static void getBarcode2D(const Mat &input, Mat &output);
+static void printArea(const vector<double> &sortedArea, const vector<int> &sortedIndex);
 
-void detect2D(Mat &input, Mat &original, Mat &output, int scale)
+void detect2D(const Mat &input, const Mat &original, Mat &output, int scale)
 {
-	vector<Vec4i> hierarchy;
+	vector< vector<Point> > contours;
 	_scale = scale;
-	findContours(input, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-	detectMarker();
+	findContours(input, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+	detectMarker(contours);
 	getBarcode2D(original, output);
 }
 
-static void getSortedArea(void)
+static void getSortedArea(const vector< vector<Point> > &contours, vector<double> &sortedArea, vector<int> &sortedIndex)
 {
 	vector<double>::iterator itArea;
 	vector<int>::iterator itIndex;
@@ -64,7 +60,7 @@ static bool testSquare(const vector<Point> &quadrilateral)
 	return (ratio > 0.25 && ratio < 4) ? true : false;
 }
 
-static void getCenter(void)
+static void getCenter(const vector< vector<Point> > &marker)
 {
 	for (int i = 0; i < 3; i++) {
 		markerCenter[i].x = (marker[i][0].x + marker[i][1].x + marker[i][2].x + marker[i][3].x) / 4;
@@ -95,7 +91,7 @@ static void getSequence(void)
 	sequence[1] = index;
 }
 
-static int getLowLeft(void)
+static int getLowLeft(const vector< vector<Point> > &marker)
 {
 	int max = -WIDTH * WIDTH;
 	int index = -1;
@@ -110,7 +106,7 @@ static int getLowLeft(void)
 	return index;
 }
 
-static int getHighRight(void)
+static int getHighRight(const vector< vector<Point> > &marker)
 {
 	int max = -WIDTH * WIDTH;
 	int index = -1;
@@ -125,7 +121,7 @@ static int getHighRight(void)
 	return index;
 }
 
-static void getHighLeft(void)
+static void getHighLeft(const vector< vector<Point> > &marker)
 {
 	int max = -WIDTH * WIDTH;
 	int index = -1;
@@ -139,17 +135,19 @@ static void getHighLeft(void)
 	highLeft = marker[sequence[1]][index];
 }
 
-static void getLowRight(int ll, int hr)
+static void getLowRight(const vector< vector<Point> > &marker, int ll, int hr)
 {
 	const vector<int> &e1 = getLineEquation(marker[sequence[0]][ll], marker[sequence[0]][(ll + 3) % 4]);
 	const vector<int> &e2 = getLineEquation(marker[sequence[2]][hr], marker[sequence[2]][(hr + 1) % 4]);
 	lowRight = getIntersection(e1, e2);
 }
 
-static void detectMarker(void)
+static void detectMarker(const vector< vector<Point> > &contours)
 {
-	marker.clear();
-	getSortedArea();
+	vector<double> sortedArea;
+	vector<int> sortedIndex;
+	vector< vector<Point> > marker;
+	getSortedArea(contours, sortedArea, sortedIndex);
 	for (int i = 0; i < sortedIndex.size(); i++) {
 		const vector<Point> &temp = getMinQuadrilateral(contours[sortedIndex[i]]);
 		if (temp.size() != 4) continue;
@@ -159,15 +157,15 @@ static void detectMarker(void)
 		if (marker.size() == 3) break;
 	}
 	if (marker.size() < 3) return;
-	getCenter();
+	getCenter(marker);
 	getSequence();
-	getHighLeft();
-	int ll = getLowLeft();
-	int hr = getHighRight();
-	getLowRight(ll, hr);
+	getHighLeft(marker);
+	int ll = getLowLeft(marker);
+	int hr = getHighRight(marker);
+	getLowRight(marker, ll, hr);
 }
 
-static void getBarcode2D(Mat &input, Mat &output)
+static void getBarcode2D(const Mat &input, Mat &output)
 {
 	vector<Point2f> object(4);
 	vector<Point2f> scene(4);
@@ -183,7 +181,7 @@ static void getBarcode2D(Mat &input, Mat &output)
 	warpPerspective(input, output, tran, Size(BAR_WIDTH, BAR_HEIGHT));
 }
 
-static void printArea(void)
+static void printArea(const vector<double> &sortedArea, const vector<int> &sortedIndex)
 {
 	cout << "area: ";
 	for (int i = 0; i < sortedArea.size(); i++) {

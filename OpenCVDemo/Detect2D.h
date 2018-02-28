@@ -2,4 +2,4 @@
 
 #include <opencv2\opencv.hpp>
 
-void detect2D(cv::Mat &input, cv::Mat &original, cv::Mat &output, int ratio);
+void detect2D(const cv::Mat &input, const cv::Mat &original, cv::Mat &output, int ratio);

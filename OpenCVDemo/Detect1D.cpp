@@ -8,25 +8,24 @@ using namespace std;
 using namespace cv;
 
 static int _scale;
-static vector< vector<Point> > contours;
 
-static int findMaxContour(void);
+static int findMaxContour(const vector< vector<Point> > &contours);
 static int getQuadrilateralStart(const vector<Point> &quadrilateral);
-static void getBarcode1D(Mat &input, Mat &output, const vector<Point> &quadrilateral, int quadrilateralStart);
+static void getBarcode1D(const Mat &input, Mat &output, const vector<Point> &quadrilateral, int quadrilateralStart);
 
-void detect1D(Mat &input, Mat &original, Mat &output, int scale)
+void detect1D(const Mat &input, const Mat &original, Mat &output, int scale)
 {
-	vector<Vec4i> hierarchy;
+	vector< vector<Point> > contours;
 	_scale = scale;
-	findContours(input, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-	int maxContour = findMaxContour();
+	findContours(input, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+	int maxContour = findMaxContour(contours);
 	if (maxContour == -1) return;
 	const vector<Point> &minQuadrilateral = getMinQuadrilateral(contours[maxContour]);
 	if (minQuadrilateral.size() != 4) return;
 	getBarcode1D(original, output, minQuadrilateral, getQuadrilateralStart(minQuadrilateral));
 }
 
-static int findMaxContour(void)
+static int findMaxContour(const vector< vector<Point> > &contours)
 {
 	double area = 0;
 	int maxContour = -1;
@@ -60,7 +59,7 @@ static int getQuadrilateralStart(const vector<Point> &quadrilateral)
 	return quadrilateral[index[0]].y < quadrilateral[index[1]].y ? index[0] : index[1];
 }
 
-static void getBarcode1D(Mat &input, Mat &output, const vector<Point> &quadrilateral, int quadrilateralStart)
+static void getBarcode1D(const Mat &input, Mat &output, const vector<Point> &quadrilateral, int quadrilateralStart)
 {
 	vector<Point2f> object(4);
 	vector<Point2f> scene(4);
