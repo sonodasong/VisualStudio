@@ -88,6 +88,18 @@ vector<Point> getMinQuadrilateral(const vector<Point> &contour)
 	return minQuadrilateral;
 }
 
+vector<Point> getExtendedQuadrilateral(const vector<Point> &quadrilateral, int extend)
+{
+	vector<Point> extendedQuadrilateral;
+	Point center;
+	center.x = (quadrilateral[0].x + quadrilateral[1].x + quadrilateral[2].x + quadrilateral[3].x) / 4;
+	center.y = (quadrilateral[0].y + quadrilateral[1].y + quadrilateral[2].y + quadrilateral[3].y) / 4;
+	for (int i = 0; i < 4; i++) {
+		extendedQuadrilateral.push_back(Point(((extend + 1) * quadrilateral[i].x - center.x) / extend, ((extend + 1) * quadrilateral[i].y - center.y) / extend));
+	}
+	return extendedQuadrilateral;
+}
+
 void drawPolygon(Mat &draw, const vector<Point> &hull, Scalar color, int scale)
 {
 	Point prev, cur;

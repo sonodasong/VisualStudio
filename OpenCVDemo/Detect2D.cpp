@@ -153,7 +153,7 @@ static void detectMarker(const vector< vector<Point> > &contours)
 		if (temp.size() != 4) continue;
 		if (!testSquare(temp)) continue;
 		if (sortedArea[i] / contourArea(temp) < AREA_RATIO) continue;
-		marker.push_back(temp);
+		marker.push_back(getExtendedQuadrilateral(temp, EXTEND_2D));
 		if (marker.size() == 3) break;
 	}
 	if (marker.size() < 3) return;

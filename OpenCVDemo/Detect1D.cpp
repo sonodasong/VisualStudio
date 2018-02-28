@@ -22,7 +22,8 @@ void detect1D(const Mat &input, const Mat &original, Mat &output, int scale)
 	if (maxContour == -1) return;
 	const vector<Point> &minQuadrilateral = getMinQuadrilateral(contours[maxContour]);
 	if (minQuadrilateral.size() != 4) return;
-	getBarcode1D(original, output, minQuadrilateral, getQuadrilateralStart(minQuadrilateral));
+	const vector<Point> &extendedQuadrilateral = getExtendedQuadrilateral(minQuadrilateral, EXTEND_1D);
+	getBarcode1D(original, output, extendedQuadrilateral, getQuadrilateralStart(extendedQuadrilateral));
 }
 
 static int findMaxContour(const vector< vector<Point> > &contours)

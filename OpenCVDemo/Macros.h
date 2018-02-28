@@ -15,6 +15,9 @@
 #define AREA_RANGE					16
 #define AREA_RATIO					0.8
 
+#define EXTEND_1D					8
+#define EXTEND_2D					2
+
 #define BAR_WIDTH					240
 #define BAR_HEIGHT					240
 
